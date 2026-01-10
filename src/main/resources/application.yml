@@ -1,0 +1,27 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: ${postgres_db_url}
+    username: ${postgres_username}
+    password: ${postgres_password}
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none   # you already created tables
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+security:
+  jwt:
+    issuer: "trade-identity-service"
+    secret: ${security_jwt_secret}
+    accessTtlMinutes: 15
+  refresh:
+    ttlDays: 30
+  magicLink:
+    ttlMinutes: 15
+
