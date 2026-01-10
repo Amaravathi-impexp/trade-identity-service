@@ -1,7 +1,6 @@
-server:
-  port: 8081
-
 spring:
+  application:
+    name: trade-identity-service
   datasource:
     url: ${postgres_db_url}
     username: ${postgres_username}
