@@ -24,3 +24,6 @@ security:
   magicLink:
     ttlMinutes: 15
 
+app:
+  frontendBaseUrl: ${frontendBaseUrl}
+
