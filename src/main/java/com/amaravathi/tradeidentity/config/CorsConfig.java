@@ -13,7 +13,8 @@ public class CorsConfig {
         CorsConfiguration cfg = new CorsConfiguration();
         cfg.setAllowedOrigins(List.of("http://localhost:3000",
                 "https://trade-identity-service-nhn7h.ondigitalocean.app",
-                "https://trade-operation-service-2qkev.ondigitalocean.app"));
+                "https://trade-operation-service-2qkev.ondigitalocean.app",
+                "https://amaravathi-impexp-app-s35ke.ondigitalocean.app"));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         cfg.setAllowedHeaders(List.of("Authorization","Content-Type"));
         cfg.setAllowCredentials(false); // header-based auth
