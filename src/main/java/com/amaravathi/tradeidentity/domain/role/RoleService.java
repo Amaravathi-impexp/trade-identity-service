@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -73,5 +74,17 @@ public class RoleService {
 
     public List<String> getAllRolesByUserId(int id) {
        return userRoleRepo.findRoleCodesByUserId(id);
+    }
+
+    public void createDefaultRole(int id) {
+
+
+        Optional<Role> roleOptional = roleRepo.findByCode("ROLE_TRADER");
+        if (roleOptional.isPresent()){
+            UserRole userRole = new UserRole(id, roleOptional.get().getId(), id);
+            userRoleRepo.save(userRole);
+        } else {
+            throw new IllegalArgumentException("Default Role not found");
+        }
     }
 }

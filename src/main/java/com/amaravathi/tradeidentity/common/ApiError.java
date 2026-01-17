@@ -1,11 +1,22 @@
 package com.amaravathi.tradeidentity.common;
 
+import lombok.Data;
+
 import java.time.OffsetDateTime;
 
-public record ApiError(
-        OffsetDateTime timestamp,
-        int status,
-        String error,
-        String message,
-        String path
-) {}
+@Data
+public class ApiError {
+    private OffsetDateTime timestamp;
+    private int status;
+    private String error;
+    private String message;
+    private String path;
+
+    public ApiError(OffsetDateTime timestamp, int status, String error, String message, String path) {
+        this.timestamp = timestamp;
+        this.status = status;
+        this.error = error;
+        this.message = message;
+        this.path = path;
+    }
+}

@@ -2,10 +2,12 @@ package com.amaravathi.tradeidentity.domain.user;
 
 import com.amaravathi.tradeidentity.api.admin.dto.*;
 import com.amaravathi.tradeidentity.api.auth.dto.SignUpRequestDto;
+import com.amaravathi.tradeidentity.api.auth.dto.SignUpResponseDto;
 import com.amaravathi.tradeidentity.domain.role.Role;
 import com.amaravathi.tradeidentity.domain.role.RoleService;
 import com.amaravathi.tradeidentity.domain.role.UserRoleRepository;
 import jakarta.persistence.EntityManager;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -55,6 +57,15 @@ public class UserService {
         u.setEmailNotificationEnabled(req.isEmailNotificationEnabled());
         u.setPhoneNotificationEnabled(req.isPhoneNotificationEnabled());
         u.setAppNotificationEnabled(req.isAppNotificationEnabled());
+        u.setCity(req.getCity());
+        u.setResidenceCountry(req.getResidenceCountry());
+        u.setPreferredLanguage(req.getPreferredLanguage());
+        u.setOccupation(req.getOccupation());
+        u.setInterest(req.getInterest());
+        u.setPreviousTradingExposure(req.getPreviousTradingExposure());
+        u.setTermsAccepted(req.isTermsAccepted());
+        u.setCommunicationConsent(req.isCommunicationConsent());
+
         AppUser user =  userRepo.save(u);
 
         if (req.getRoles() != null && !req.getRoles().isEmpty()) {
@@ -66,17 +77,22 @@ public class UserService {
     }
 
     @Transactional
-    public AppUser createUser(SignUpRequestDto req) {
+    public SignUpResponseDto createUser(SignUpRequestDto req) {
         if (userRepo.existsByEmailIgnoreCase(req.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
-        AppUser u = new AppUser();
-        u.setEmail(req.getEmail());
-        u.setPhone(req.getPhone());
-        u.setFullName(req.getFullName());
-        u.setPasswordHash(passwordEncoder.encode(req.getPassword()));
-        u.setStatus(UserStatus.CREATED);
-        return userRepo.save(u);
+        AppUser u = UserServiceUtil.convertRequestDtoToUserEntity(req, passwordEncoder);
+
+        u = userRepo.save(u);
+
+        //set Default TRADER Role to USER
+        roleService.createDefaultRole(u.getId());
+
+        SignUpResponseDto responseDto = SignUpResponseDto.builder()
+                .message("Sign-up successful. Please login !!!")
+                .build();
+
+        return responseDto;
     }
 
     public AppUser requireUserByEmail(String email) {

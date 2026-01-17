@@ -15,7 +15,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/trade-identity/v1/admin/roles")
-//@PreAuthorize("hasRole('ADMIN')")
 public class AdminRoleController {
 
     private final RoleService roleService;

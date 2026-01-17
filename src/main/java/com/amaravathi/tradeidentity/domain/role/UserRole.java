@@ -36,6 +36,11 @@ public class UserRole {
         this.assignedBy = assignedBy;
     }
 
+    public UserRole(int userId, int roleId) {
+        this.userId = userId;
+        this.roleId = roleId;
+    }
+
     public static class PK implements Serializable {
         public int userId;
         public int roleId;

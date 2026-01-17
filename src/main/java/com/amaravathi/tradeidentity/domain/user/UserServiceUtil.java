@@ -1,11 +1,13 @@
 package com.amaravathi.tradeidentity.domain.user;
 
+import com.amaravathi.tradeidentity.api.auth.dto.SignUpRequestDto;
 import com.amaravathi.tradeidentity.api.formData.dto.CountryResponseDto;
 import com.amaravathi.tradeidentity.api.formData.dto.ProductTypeResponseDto;
 import com.amaravathi.tradeidentity.api.admin.dto.RoleResponseResponseDto;
 import com.amaravathi.tradeidentity.domain.formData.Country;
 import com.amaravathi.tradeidentity.domain.formData.ProductType;
 import com.amaravathi.tradeidentity.domain.role.Role;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -49,5 +51,23 @@ public class UserServiceUtil {
                         .build()
                 )
                 .toList();
+    }
+
+    public static AppUser convertRequestDtoToUserEntity(SignUpRequestDto req, PasswordEncoder passwordEncoder) {
+        AppUser user = new AppUser();
+        user.setEmail(req.getEmail());
+        user.setFullName(req.getFullName());
+        user.setPhone(req.getPhone());
+        user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+        user.setStatus(UserStatus.ENROLLED);
+        user.setResidenceCountry(req.getResidenceCountry());
+        user.setCity(req.getCity());
+        user.setPreferredLanguage(req.getPreferredLanguage());
+        user.setOccupation(req.getOccupation());
+        user.setInterest(req.getInterest());
+        user.setPreviousTradingExposure(req.getPreviousTradingExposure());
+        user.setTermsAccepted(req.isTermsAccepted());
+        user.setCommunicationConsent(req.isCommunicationConsent());
+        return user;
     }
 }

@@ -11,6 +11,7 @@ import com.amaravathi.tradeidentity.security.JwtTokenService;
 import com.amaravathi.tradeidentity.security.SecurityUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -49,13 +50,13 @@ public class AuthController {
 
     @PostMapping("/auth/sign-up")
     @ResponseStatus(HttpStatus.CREATED)
-    public SignUpResponseDto signUp(@Valid @RequestBody SignUpRequestDto req) {
-        AppUser user = userService.createUser(req);
+    public ResponseEntity<SignUpResponseDto> signUp(@Valid @RequestBody SignUpRequestDto req) {
+        SignUpResponseDto signUpResponseDto = userService.createUser(req);
 
         // Send magic link to verify email
-        magicLinkService.sendEmailVerifyLink(user.getEmail(), null);
+        magicLinkService.sendEmailVerifyLink(req.getEmail(), null);
 
-        return  SignUpResponseDto.builder().message("Sign-up successful. Please verify your email.").build();
+        return  ResponseEntity.status(HttpStatus.CREATED).body(signUpResponseDto);
     }
 
     @PostMapping("/auth/sign-in")

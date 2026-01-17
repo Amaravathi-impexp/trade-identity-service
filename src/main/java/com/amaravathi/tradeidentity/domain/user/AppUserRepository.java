@@ -46,4 +46,13 @@ public interface AppUserRepository extends JpaRepository<AppUser, Integer> {
       left join fetch u.roles
     """)
     List<AppUser> findAllWithDetails();
+
+    @Query("""
+        select distinct u
+        from AppUser u
+        join UserTraining ut on ut.userId = u.id
+        where ut.trainingId = :trainingId
+        order by u.id
+    """)
+    List<AppUser> findAllUsersEnrolledForAnyTraining(@Param("trainingId") int trainingId);
 }

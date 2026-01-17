@@ -1,6 +1,7 @@
 package com.amaravathi.tradeidentity.api.auth.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,4 +20,10 @@ public class SignUpResponseDto {
     String fullName;
     String email;
     String phone;
+    private String residenceCountry;
+    private String city;
+    private String preferredLanguage;
+    private String occupation;
+    private String interest;
+    private String previousTradingExposure;
 }

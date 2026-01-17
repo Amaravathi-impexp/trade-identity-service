@@ -6,6 +6,7 @@ import com.amaravathi.tradeidentity.domain.role.Role;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.*;
 
@@ -80,6 +81,63 @@ public class AppUser {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_type_id", referencedColumnName = "id", insertable = false, updatable = false)
     private ProductType productType;
+
+    @Column(name = "dob", nullable = false)
+    private LocalDate dob;
+
+    @Column(name = "nationality", nullable = false)
+    private String nationality ;
+
+    @Column(name = "visa_status")
+    private String visaStatus;
+
+    @Column(name = "time_zone")
+    private String timeZone;
+
+    @Column(name = "field_of_work")
+    private String fieldOfWork;
+
+    @Column(name = "years_exp")
+    private Integer yearsExp;
+
+    @Column(name = "prev_business_activity")
+    private String prevBusinessActivity;
+
+    @Column(name = "capital_range")
+    private String capitalRange;
+
+    @Column(name = "trade_mode")
+    private String trade_mode;
+
+    @Column(name = "declaration", nullable = false)
+    private Boolean declaration;
+
+    @Column(name = "consent", nullable = false)
+    private Boolean consent;
+
+    @Column(name = "residence_country", nullable = false)
+    private String residenceCountry;
+
+    @Column(name = "city", nullable = false)
+    private String city;
+
+    @Column(name = "preferred_language")
+    private String preferredLanguage;
+
+    @Column(name = "occupation", nullable = false)
+    private String occupation;
+
+    @Column(name = "interest")
+    private String interest;
+
+    @Column(name = "previous_trading_exp")
+    private String previousTradingExposure;
+
+    @Column(name = "terms_accepted", nullable = false)
+    private boolean termsAccepted;
+
+    @Column(name = "communication_consent", nullable = false)
+    private boolean communicationConsent;
 
     @PrePersist
     void prePersist() {
