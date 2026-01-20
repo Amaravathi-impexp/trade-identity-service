@@ -91,6 +91,7 @@ public class AuthController {
                 .isAppNotificationEnabled(user.isAppNotificationEnabled())
                 .isEmailNotificationEnabled(user.isEmailNotificationEnabled())
                 .isPhoneNotificationEnabled(user.isPhoneNotificationEnabled())
+                .countryCode(user.getCountryCode())
                 .build();
     }
 

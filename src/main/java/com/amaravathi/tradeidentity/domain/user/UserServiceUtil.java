@@ -68,6 +68,7 @@ public class UserServiceUtil {
         user.setPreviousTradingExposure(req.getPreviousTradingExposure());
         user.setTermsAccepted(req.isTermsAccepted());
         user.setCommunicationConsent(req.isCommunicationConsent());
+        user.setCountryCode(req.getCountryCode());
         return user;
     }
 }

@@ -12,4 +12,5 @@ public class TrainingResponseDto {
     private int trainingId;
     private SessionDto firstSession;
     private SessionDto secondSession;
+    private SessionDto thirdSession;
 }

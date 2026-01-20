@@ -170,6 +170,7 @@ public class UserService {
                 .isEmailNotificationEnabled(user.isEmailNotificationEnabled())
                 .isAppNotificationEnabled(user.isAppNotificationEnabled())
                 .isPhoneNotificationEnabled(user.isPhoneNotificationEnabled())
+                .countryCode(user.getCountryCode())
                 .build();
     }
 
@@ -198,6 +199,7 @@ public class UserService {
                             .previousTradingExposure(user.getPreviousTradingExposure())
                             .residenceCountry(user.getResidenceCountry())
                             .preferredLanguage(user.getPreferredLanguage())
+                            .countryCode(user.getCountryCode())
                             .build()
                     ).toList();
 

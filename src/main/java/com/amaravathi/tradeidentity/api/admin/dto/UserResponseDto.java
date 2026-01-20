@@ -41,5 +41,6 @@ public class UserResponseDto {
     private String occupation;
     private String interest;
     private String previousTradingExposure;
+    private String countryCode;
 
 }

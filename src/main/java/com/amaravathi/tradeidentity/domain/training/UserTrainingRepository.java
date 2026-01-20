@@ -19,4 +19,9 @@ public interface UserTrainingRepository extends JpaRepository<UserTraining, User
 
 
     Optional<AppUser> findAllUsersByTrainingId(int trainingId);
+
+    @Transactional
+    @Modifying
+    @Query("delete from UserTraining ut where ut.trainingId = :trainingId")
+    void deleteAllByTrainingId(int trainingId);
 }

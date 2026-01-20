@@ -11,4 +11,5 @@ import lombok.*;
 public class TrainingRequestDto {
     private SessionDto firstSession;
     private SessionDto secondSession;
+    private SessionDto thirdSession;
 }

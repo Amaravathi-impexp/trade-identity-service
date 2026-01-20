@@ -34,4 +34,5 @@ public class SignInResponseDto {
     private boolean isEmailNotificationEnabled;
     private boolean isPhoneNotificationEnabled;
     private boolean isAppNotificationEnabled;
+    String countryCode;
 }

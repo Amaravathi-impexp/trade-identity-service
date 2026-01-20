@@ -26,4 +26,5 @@ public class SignUpResponseDto {
     private String occupation;
     private String interest;
     private String previousTradingExposure;
+    String countryCode;
 }

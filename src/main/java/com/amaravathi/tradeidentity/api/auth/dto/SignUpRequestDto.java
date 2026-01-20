@@ -30,4 +30,5 @@ public class SignUpRequestDto {
     private String previousTradingExposure;
     @NotNull private boolean termsAccepted;
     @NotNull private boolean communicationConsent;
+    @NotNull private String countryCode;
 }

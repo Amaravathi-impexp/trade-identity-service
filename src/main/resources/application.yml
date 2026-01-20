@@ -46,13 +46,9 @@ logging:
     # Hibernate / JPA
     org.hibernate.SQL: INFO
     org.hibernate.type.descriptor.sql: INFO
-  # Log file configuration
-  file:
-    name: logs/trade-identity-service-application.log
   # Log patterns
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] cid=%X{cid} %logger{40} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] cid=%X{cid} %logger{40} - %msg%n"
 
 
 

@@ -139,6 +139,9 @@ public class AppUser {
     @Column(name = "communication_consent", nullable = false)
     private boolean communicationConsent;
 
+    @Column(name = "country_code")
+    private String countryCode;
+
     @PrePersist
     void prePersist() {
         //if (id == null) id = UUID.randomUUID();

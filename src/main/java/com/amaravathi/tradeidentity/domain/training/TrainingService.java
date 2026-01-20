@@ -66,10 +66,18 @@ public class TrainingService {
                 .startTime(r.getSecondSessionStartTime())
                 .endTime(r.getSecondSessionEndTime())
                 .build();
+
+        SessionDto thirdSession = SessionDto.builder()
+                .date(r.getThirdSessionDate())
+                .startTime(r.getThirdSessionStartTime())
+                .endTime(r.getThirdSessionEndTime())
+                .build();
+
         return TrainingResponseDto.builder()
                 .trainingId(r.getId())
                 .firstSession(firstSession)
                 .secondSession(secondSession)
+                .thirdSession(thirdSession)
                 .build();
     }
 
@@ -91,6 +99,10 @@ public class TrainingService {
             training.setSecondSessionDate(req.getSecondSession().getDate());
             training.setSecondSessionStartTime(req.getSecondSession().getStartTime());
             training.setSecondSessionEndTime(req.getSecondSession().getEndTime());
+
+            training.setThirdSessionDate(req.getThirdSession().getDate());
+            training.setThirdSessionStartTime(req.getThirdSession().getStartTime());
+            training.setThirdSessionEndTime(req.getThirdSession().getEndTime());
 
             Training savedTraining = trainingRepository.save(training);
 
@@ -202,6 +214,9 @@ public class TrainingService {
                 log.warn("Training not found for trainingId={}", trainingId);
                 throw new ResourceNotFoundException("Training not found with id: " + trainingId);
             }
+
+
+            userTrainingRepository.deleteAllByTrainingId(trainingId);
 
             trainingRepository.deleteById(trainingId);
 

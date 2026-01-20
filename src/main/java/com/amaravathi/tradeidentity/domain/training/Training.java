@@ -30,6 +30,11 @@ public class Training {
     private LocalTime secondSessionStartTime;
     private LocalTime secondSessionEndTime;
 
+    @JsonFormat(pattern = "dd/MM/yyyy")
+    private LocalDate thirdSessionDate;
+    private LocalTime thirdSessionStartTime;
+    private LocalTime thirdSessionEndTime;
+
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 
