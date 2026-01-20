@@ -6,6 +6,8 @@ import com.amaravathi.tradeidentity.domain.user.UserStatus;
 
 import java.util.List;
 import java.util.UUID;
+
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,4 +34,12 @@ public class UserResponseDto {
     boolean isEmailNotificationEnabled;
     boolean isPhoneNotificationEnabled;
     boolean isAppNotificationEnabled;
+
+    private String residenceCountry;
+    private String city;
+    private String preferredLanguage;
+    private String occupation;
+    private String interest;
+    private String previousTradingExposure;
+
 }

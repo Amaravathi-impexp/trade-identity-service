@@ -3,25 +3,27 @@ package com.amaravathi.tradeidentity.domain.user;
 import com.amaravathi.tradeidentity.api.admin.dto.*;
 import com.amaravathi.tradeidentity.api.auth.dto.SignUpRequestDto;
 import com.amaravathi.tradeidentity.api.auth.dto.SignUpResponseDto;
+import com.amaravathi.tradeidentity.common.ResourceNotFoundException;
+import com.amaravathi.tradeidentity.common.TradeIdentityException;
 import com.amaravathi.tradeidentity.domain.role.Role;
 import com.amaravathi.tradeidentity.domain.role.RoleService;
 import com.amaravathi.tradeidentity.domain.role.UserRoleRepository;
 import jakarta.persistence.EntityManager;
-import jakarta.validation.constraints.NotNull;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
 import static com.amaravathi.tradeidentity.domain.user.UserServiceUtil.*;
-import static org.springframework.transaction.annotation.Propagation.REQUIRES_NEW;
 
 @Service
+@Slf4j
 public class UserService {
     private final AppUserRepository userRepo;
     private final UserRoleRepository userRoleRepo;
@@ -38,70 +40,120 @@ public class UserService {
         this.em = em;
     }
 
-    public UserResponseDto createUser(CreateUserRequestDto req, Authentication auth) {
-        if (userRepo.existsByEmailIgnoreCase(req.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
-        }
-
-        AppUser u = new AppUser();
-        u.setEmail(req.getEmail());
-        u.setPhone(req.getPhone());
-        u.setFullName(req.getFullName());
-        u.setPasswordHash(passwordEncoder.encode(req.getPassword()));
-        u.setStatus(UserStatus.ACTIVE);
-        u.setEmailVerified(false);
-        u.setPhoneVerified(false);
-        u.setOriginCountryId(req.getOriginCountryId());
-        u.setDestinationCountryId(req.getDestinationCountryId());
-        u.setProductTypeId(req.getProductTypeId());
-        u.setEmailNotificationEnabled(req.isEmailNotificationEnabled());
-        u.setPhoneNotificationEnabled(req.isPhoneNotificationEnabled());
-        u.setAppNotificationEnabled(req.isAppNotificationEnabled());
-        u.setCity(req.getCity());
-        u.setResidenceCountry(req.getResidenceCountry());
-        u.setPreferredLanguage(req.getPreferredLanguage());
-        u.setOccupation(req.getOccupation());
-        u.setInterest(req.getInterest());
-        u.setPreviousTradingExposure(req.getPreviousTradingExposure());
-        u.setTermsAccepted(req.isTermsAccepted());
-        u.setCommunicationConsent(req.isCommunicationConsent());
-
-        AppUser user =  userRepo.save(u);
-
-        if (req.getRoles() != null && !req.getRoles().isEmpty()) {
-            setRoles(user.getId(), req.getRoles(), auth);
-        }
-
-        return this.requireUser(user.getId());
-
-    }
+    // ------------------ ADMIN CREATE USER ------------------
 
     @Transactional
-    public SignUpResponseDto createUser(SignUpRequestDto req) {
-        if (userRepo.existsByEmailIgnoreCase(req.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
+    public UserResponseDto createUser(CreateUserRequestDto req, Authentication auth) {
+        log.info("Creating user (admin flow) email={}", req != null ? req.getEmail() : null);
+
+        if (req == null) throw new IllegalArgumentException("Request cannot be null");
+
+        try {
+            if (userRepo.existsByEmailIgnoreCase(req.getEmail())) {
+                log.warn("Email already exists email={}", req.getEmail());
+                throw new IllegalArgumentException("Email already exists");
+            }
+
+            AppUser u = new AppUser();
+            u.setEmail(req.getEmail().trim());
+            u.setPhone(req.getPhone());
+            u.setFullName(req.getFullName());
+            u.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+            u.setStatus(UserStatus.ACTIVE);
+            u.setEmailVerified(false);
+            u.setPhoneVerified(false);
+
+            u.setOriginCountryId(req.getOriginCountryId());
+            u.setDestinationCountryId(req.getDestinationCountryId());
+            u.setProductTypeId(req.getProductTypeId());
+
+            u.setEmailNotificationEnabled(req.isEmailNotificationEnabled());
+            u.setPhoneNotificationEnabled(req.isPhoneNotificationEnabled());
+            u.setAppNotificationEnabled(req.isAppNotificationEnabled());
+
+            u.setCity(req.getCity());
+            u.setResidenceCountry(req.getResidenceCountry());
+            u.setPreferredLanguage(req.getPreferredLanguage());
+            u.setOccupation(req.getOccupation());
+            u.setInterest(req.getInterest());
+            u.setPreviousTradingExposure(req.getPreviousTradingExposure());
+            u.setTermsAccepted(req.isTermsAccepted());
+            u.setCommunicationConsent(req.isCommunicationConsent());
+
+            AppUser saved = userRepo.save(u);
+            log.info("User created userId={} email={}", saved.getId(), saved.getEmail());
+
+            if (req.getRoles() != null && !req.getRoles().isEmpty()) {
+                log.info("Assigning {} roles to new userId={}", req.getRoles().size(), saved.getId());
+                setRoles(saved.getId(), req.getRoles(), auth);
+            }
+
+            return requireUser(saved.getId());
+
+        } catch (DataIntegrityViolationException dive) {
+            log.error("Data integrity violation while creating user email={}", req.getEmail(), dive);
+            throw new TradeIdentityException("Invalid user data / duplicate constraints", dive);
+
+        } catch (DataAccessException dae) {
+            log.error("Database error while creating user email={}", req.getEmail(), dae);
+            throw new TradeIdentityException("Database error while creating user", dae);
         }
-        AppUser u = UserServiceUtil.convertRequestDtoToUserEntity(req, passwordEncoder);
-
-        u = userRepo.save(u);
-
-        //set Default TRADER Role to USER
-        roleService.createDefaultRole(u.getId());
-
-        SignUpResponseDto responseDto = SignUpResponseDto.builder()
-                .message("Sign-up successful. Please login !!!")
-                .build();
-
-        return responseDto;
     }
 
+    // ------------------ SIGNUP ------------------
+
+    @Transactional
+    public SignUpResponseDto signUpUser(SignUpRequestDto req) {
+        log.info("Sign-up request received email={}", req != null ? req.getEmail() : null);
+
+        if (req == null) throw new IllegalArgumentException("Request cannot be null");
+        if (req.getEmail() == null || req.getEmail().isBlank()) throw new IllegalArgumentException("Email is required");
+        if (req.getPassword() == null || req.getPassword().isBlank()) throw new IllegalArgumentException("Password is required");
+
+        try {
+            if (userRepo.existsByEmailIgnoreCase(req.getEmail())) {
+                log.warn("Sign-up failed: email already exists email={}", req.getEmail());
+                throw new IllegalArgumentException("Email already exists");
+            }
+
+            AppUser u = UserServiceUtil.convertRequestDtoToUserEntity(req, passwordEncoder);
+            AppUser saved = userRepo.save(u);
+
+            // Default role assignment is part of the same transaction
+            roleService.createDefaultRole(saved.getId());
+
+            log.info("Sign-up successful userId={} email={}", saved.getId(), saved.getEmail());
+
+            return SignUpResponseDto.builder()
+                    .message("Sign-up successful. Please login !!!")
+                    .build();
+
+        } catch (DataIntegrityViolationException dive) {
+            log.error("Data integrity violation during sign-up email={}", req.getEmail(), dive);
+            throw new TradeIdentityException("Invalid sign-up data / duplicate constraints", dive);
+
+        } catch (DataAccessException dae) {
+            log.error("Database error during sign-up email={}", req.getEmail(), dae);
+            throw new TradeIdentityException("Database error during sign-up", dae);
+        }
+    }
+
+    // ------------------ REQUIRE USER ------------------
+
+    @Transactional(readOnly = true)
     public AppUser requireUserByEmail(String email) {
-        return userRepo.findByEmailWithDetails(email).orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+        if (email == null || email.isBlank()) throw new IllegalArgumentException("Email is required");
+
+        return userRepo.findByEmailWithDetails(email.trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Invalid credentials"));
     }
 
     @Transactional(readOnly = true)
     public UserResponseDto requireUser(int userId) {
-        AppUser user =  userRepo.findByIdWithDetails(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if (userId <= 0) throw new IllegalArgumentException("Invalid userId");
+
+        AppUser user = userRepo.findByIdWithDetails(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         return UserResponseDto.builder()
                 .id(user.getId())
@@ -121,88 +173,204 @@ public class UserService {
                 .build();
     }
 
+    // ------------------ GET ALL USERS ------------------
+
     @Transactional(readOnly = true)
     public List<UserResponseDto> getAllUsers() {
+        log.info("Fetching all users");
 
-        return userRepo.findAllWithDetails().stream().map(user -> new UserResponseDto(
-                user.getId(), user.getEmail(), user.getFullName(), user.getPhone(), user.getStatus(),
-                user.isEmailVerified(), user.isPhoneVerified(),
-                mapCountryEntityToCountryDto(user.getOriginCountry()),
-                mapCountryEntityToCountryDto(user.getDestinationCountry()),
-                mapProductTypeEntityToProductTypeDto(user.getProductType()),
-                mapRoleEntityToRoleResponseDto(user.getRoles()),
-                user.isEmailNotificationEnabled(),
-                user.isPhoneNotificationEnabled(),
-                user.isAppNotificationEnabled()
-        )).toList();
-    }
+        try {
+            List<AppUser> users = userRepo.findAllWithDetails();
+            log.debug("Found {} users", users.size());
 
-    public List<RoleResponseResponseDto> getRolesByUserId(UUID userId) {
-        List<Role> userRoles = userRepo.findByIdWithRoles(userId)
-                .orElseThrow()
-                .getRoles();
+            return users.stream()
+                    .map(user ->  UserResponseDto.builder()
+                            .id(user.getId())
+                            .email(user.getEmail())
+                            .phone(user.getPhone())
+                            .city(user.getCity())
+                            .emailVerified(user.isEmailVerified())
+                            .status(user.getStatus())
+                            .isEmailNotificationEnabled(user.isEmailNotificationEnabled())
+                            .interest(user.getInterest())
+                            .fullName(user.getFullName())
+                            .occupation(user.getOccupation())
+                            .previousTradingExposure(user.getPreviousTradingExposure())
+                            .residenceCountry(user.getResidenceCountry())
+                            .preferredLanguage(user.getPreferredLanguage())
+                            .build()
+                    ).toList();
 
-        return userRoles.stream()
-                        .map(role -> RoleResponseResponseDto.builder()
-                                .id(role.getId())
-                                .code(role.getCode())
-                                .name(role.getName())
-                                .description(role.getDescription())
-                                .build()
-                        )
-                        .toList();
-    }
-
-    public void deleteUser(int userId) {
-        userRoleRepo.deleteByUserId(userId);
-    }
-
-    public String disableUser(int userId) {
-        AppUser user =  userRepo.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        user.setStatus(com.amaravathi.tradeidentity.domain.user.UserStatus.DISABLED);
-        userRepo.save(user);
-        return "Successfully Disabled User!!";
-    }
-
-    public UserResponseDto updateUser(int userId, UpdateUserRequestDto req, Authentication auth) {
-        AppUser u =  userRepo.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        u.setEmailNotificationEnabled(req.isEmailNotificationEnabled());
-        u.setPhoneNotificationEnabled(req.isPhoneNotificationEnabled());
-        u.setAppNotificationEnabled(req.isAppNotificationEnabled());
-        if (req.getOriginCountryId() >= 0) u.setOriginCountryId(req.getOriginCountryId());
-        if (req.getDestinationCountryId()  >= 0) u.setDestinationCountryId(req.getDestinationCountryId());
-        if (req.getProductTypeId()  >= 0) u.setProductTypeId(req.getProductTypeId());
-        u.setStatus(UserStatus.ACTIVE);
-        AppUser user = userRepo.save(u);
-
-        if (req.getRoles() != null && !req.getRoles().isEmpty()) {
-            setRoles(user.getId(), req.getRoles(), auth);
+        } catch (DataAccessException dae) {
+            log.error("Database error while fetching users", dae);
+            throw new TradeIdentityException("Database error while fetching users", dae);
         }
-
-        return this.requireUser(userId);
     }
+
+    // ------------------ GET ROLES BY USER UUID ------------------
 
     @Transactional(readOnly = true)
+    public List<RoleResponseResponseDto> getRolesByUserId(UUID userId) {
+        log.info("Fetching roles for userUuid={}", userId);
+
+        if (userId == null) throw new IllegalArgumentException("userId cannot be null");
+
+        try {
+            List<Role> userRoles = userRepo.findByIdWithRoles(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"))
+                    .getRoles();
+
+            return userRoles.stream()
+                    .map(role -> RoleResponseResponseDto.builder()
+                            .id(role.getId())
+                            .code(role.getCode())
+                            .name(role.getName())
+                            .description(role.getDescription())
+                            .build())
+                    .toList();
+
+        } catch (DataAccessException dae) {
+            log.error("Database error while fetching roles for userUuid={}", userId, dae);
+            throw new TradeIdentityException("Database error while fetching user roles", dae);
+        }
+    }
+
+    // ------------------ DELETE USER (CURRENT BEHAVIOR: delete roles mapping) ------------------
+
+    @Transactional
+    public void deleteUser(int userId) {
+        log.info("Deleting user roles mapping for userId={}", userId);
+
+        if (userId <= 0) throw new IllegalArgumentException("Invalid userId");
+
+        try {
+            int deleted = userRoleRepo.deleteByUserId(userId); // recommend returning int
+            log.info("Deleted {} role mappings for userId={}", deleted, userId);
+
+            // If you actually want to delete the user entity too:
+            // userRepo.deleteById(userId);
+
+        } catch (DataIntegrityViolationException dive) {
+            log.error("Integrity violation while deleting user role mappings userId={}", userId, dive);
+            throw new TradeIdentityException("Cannot delete user roles due to constraints", dive);
+
+        } catch (DataAccessException dae) {
+            log.error("Database error while deleting user role mappings userId={}", userId, dae);
+            throw new TradeIdentityException("Database error while deleting user roles", dae);
+        }
+    }
+
+    // ------------------ DISABLE USER ------------------
+
+    @Transactional
+    public String disableUser(int userId) {
+        log.info("Disabling userId={}", userId);
+
+        if (userId <= 0) throw new IllegalArgumentException("Invalid userId");
+
+        try {
+            AppUser user = userRepo.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+            user.setStatus(UserStatus.DISABLED);
+            userRepo.save(user);
+
+            log.info("User disabled userId={}", userId);
+            return "Successfully Disabled User!!";
+
+        } catch (DataAccessException dae) {
+            log.error("Database error while disabling userId={}", userId, dae);
+            throw new TradeIdentityException("Database error while disabling user", dae);
+        }
+    }
+
+    // ------------------ UPDATE USER ------------------
+
+    @Transactional
+    public UserResponseDto updateUser(int userId, UpdateUserRequestDto req, Authentication auth) {
+        log.info("Updating userId={}", userId);
+
+        if (userId <= 0) throw new IllegalArgumentException("Invalid userId");
+        if (req == null) throw new IllegalArgumentException("Request cannot be null");
+
+        try {
+            AppUser u = userRepo.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+            u.setEmailNotificationEnabled(req.isEmailNotificationEnabled());
+            u.setPhoneNotificationEnabled(req.isPhoneNotificationEnabled());
+            u.setAppNotificationEnabled(req.isAppNotificationEnabled());
+
+            if (req.getOriginCountryId() != null && req.getOriginCountryId() > 0) u.setOriginCountryId(req.getOriginCountryId());
+            if (req.getDestinationCountryId() != null && req.getDestinationCountryId() > 0) u.setDestinationCountryId(req.getDestinationCountryId());
+            if (req.getProductTypeId() != null && req.getProductTypeId() > 0) u.setProductTypeId(req.getProductTypeId());
+
+            // Do you really want to force ACTIVE on every update?
+            // Keep if that's your business rule:
+            u.setStatus(UserStatus.ACTIVE);
+
+            userRepo.save(u);
+
+            if (req.getRoles() != null && !req.getRoles().isEmpty()) {
+                log.info("Updating roles for userId={}, rolesCount={}", userId, req.getRoles().size());
+                setRoles(userId, req.getRoles(), auth);
+            }
+
+            log.info("User updated userId={}", userId);
+            return requireUser(userId);
+
+        } catch (DataIntegrityViolationException dive) {
+            log.error("Integrity violation while updating userId={}", userId, dive);
+            throw new TradeIdentityException("User update violates constraints", dive);
+
+        } catch (DataAccessException dae) {
+            log.error("Database error while updating userId={}", userId, dae);
+            throw new TradeIdentityException("Database error while updating user", dae);
+        }
+    }
+
+    // ------------------ CHANGE USER STATUS (FIXED TX) ------------------
+
+    @Transactional
     public UserResponseDto changeUserStatus(int userId, ChangeUserStatusRequestDto req) {
-        AppUser u =  userRepo.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        log.info("Changing user status userId={}", userId);
 
-        u.setStatus(req.getStatus());
-        userRepo.save(u);
+        if (userId <= 0) throw new IllegalArgumentException("Invalid userId");
+        if (req == null || req.getStatus() == null) throw new IllegalArgumentException("Status is required");
 
-        return new UserResponseDto(u.getId(), u.getEmail(), u.getFullName(), u.getPhone(), u.getStatus(),
-                u.isEmailVerified(), u.isPhoneVerified(),
-                mapCountryEntityToCountryDto(u.getOriginCountry()),
-                mapCountryEntityToCountryDto(u.getDestinationCountry()),
-                mapProductTypeEntityToProductTypeDto(u.getProductType()),
-                mapRoleEntityToRoleResponseDto(u.getRoles()),
-                u.isEmailNotificationEnabled(), u.isPhoneNotificationEnabled(), u.isAppNotificationEnabled());
+        try {
+            AppUser u = userRepo.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
+            u.setStatus(req.getStatus());
+            userRepo.save(u);
+
+            log.info("User status updated userId={} status={}", userId, req.getStatus());
+
+            return UserResponseDto.builder()
+                    .occupation(u.getOccupation())
+                    .city(u.getCity())
+                    .status(u.getStatus())
+                    .phone(u.getPhone())
+                    .id(u.getId())
+                    .interest(u.getInterest())
+                    .isPhoneNotificationEnabled(u.isPhoneNotificationEnabled())
+                    .isAppNotificationEnabled(u.isAppNotificationEnabled())
+                    .emailVerified(u.isEmailVerified())
+                    .phoneVerified(u.isPhoneVerified())
+                    .residenceCountry(u.getResidenceCountry())
+                    .email(u.getEmail())
+                    .fullName(u.getFullName())
+                    .isEmailNotificationEnabled(u.isEmailNotificationEnabled())
+                    .build();
+
+        } catch (DataAccessException dae) {
+            log.error("Database error while changing status userId={}", userId, dae);
+            throw new TradeIdentityException("Database error while changing user status", dae);
+        }
     }
 
     public void  setRoles(int userId, List<RoleResponseResponseDto> roles, Authentication auth) {
-        //userService.deleteUser(userId);
 
         roleService.createUserRoles(userId, roles, auth);
 

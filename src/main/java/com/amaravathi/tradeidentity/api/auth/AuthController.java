@@ -10,6 +10,8 @@ import com.amaravathi.tradeidentity.domain.user.UserService;
 import com.amaravathi.tradeidentity.security.JwtTokenService;
 import com.amaravathi.tradeidentity.security.SecurityUser;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -23,6 +25,8 @@ import static com.amaravathi.tradeidentity.domain.user.UserServiceUtil.*;
 
 @RestController
 @RequestMapping("/api/trade-identity/v1")
+@Slf4j
+@RequiredArgsConstructor
 public class AuthController {
 
     private final UserService userService;
@@ -32,26 +36,12 @@ public class AuthController {
     private final RefreshTokenService refreshTokenService;
     private final MagicLinkService magicLinkService;
 
-    public AuthController(
-            UserService userService,
-            PasswordEncoder passwordEncoder,
-            RoleService roleService,
-            JwtTokenService jwtTokenService,
-            RefreshTokenService refreshTokenService,
-            MagicLinkService magicLinkService
-    ) {
-        this.userService = userService;
-        this.passwordEncoder = passwordEncoder;
-        this.roleService = roleService;
-        this.jwtTokenService = jwtTokenService;
-        this.refreshTokenService = refreshTokenService;
-        this.magicLinkService = magicLinkService;
-    }
-
     @PostMapping("/auth/sign-up")
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<SignUpResponseDto> signUp(@Valid @RequestBody SignUpRequestDto req) {
-        SignUpResponseDto signUpResponseDto = userService.createUser(req);
+
+        log.info("POST /auth/sign-up email={}", req.getEmail());
+        SignUpResponseDto signUpResponseDto = userService.signUpUser(req);
 
         // Send magic link to verify email
         magicLinkService.sendEmailVerifyLink(req.getEmail(), null);
@@ -61,6 +51,9 @@ public class AuthController {
 
     @PostMapping("/auth/sign-in")
     public SignInResponseDto signIn(@Valid @RequestBody SignInRequestDto req) {
+
+        log.info("POST /auth/sign-in email={}", req.getEmail());
+
         AppUser user = userService.requireUserByEmail(req.getEmail());
         if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
             throw new IllegalArgumentException("Invalid credentials");
@@ -103,6 +96,7 @@ public class AuthController {
 
     @PostMapping("/auth/refresh")
     public TokenPairResponseDto refresh(@Valid @RequestBody RefreshRequestDto req) {
+        log.info("POST /auth/refresh");
         int userId = refreshTokenService.validateAndGetUserId(req.getRefreshToken());
         List<String> roles = roleService.roleCodesForUser(userId);
 
@@ -119,6 +113,7 @@ public class AuthController {
 
     @PostMapping("/auth/logout")
     public GenericMessageResponseDto logout(@Valid @RequestBody LogoutRequestDto req) {
+        log.info("POST /auth/logout");
         boolean all = req.getAllSessions() != null && req.getAllSessions();
         if (!all) {
             refreshTokenService.revokeOne(req.getRefreshToken());
@@ -131,6 +126,7 @@ public class AuthController {
 
     @GetMapping("/auth/me")
     public MeResponseDto me(Authentication auth) {
+        log.info("GET /auth/me");
         SecurityUser principal = (SecurityUser) auth.getPrincipal();
         int userId = principal.userId();
         var user = userService.requireUser(userId);
@@ -148,12 +144,14 @@ public class AuthController {
 
     @PostMapping("/verify/email/send-magic-link")
     public GenericMessageResponseDto sendMagic(@Valid @RequestBody SendMagicLinkRequestDto req) {
+        log.info("POST /verify/email/send-magic-link email={}", req.getEmail());
         magicLinkService.sendEmailVerifyLink(req.getEmail(), req.getRedirectUrl());
         return new GenericMessageResponseDto("If an account exists, a verification link has been sent.");
     }
 
     @GetMapping("/verify/email/confirm")
     public VerifyEmailResponseDto confirm(@RequestParam String token) {
+        log.info("GET /verify/email/confirm");
         magicLinkService.confirmEmail(token);
         return new VerifyEmailResponseDto("Email verified successfully.", true);
     }

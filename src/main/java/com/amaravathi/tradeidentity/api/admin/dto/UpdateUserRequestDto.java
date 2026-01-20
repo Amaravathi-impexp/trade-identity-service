@@ -14,9 +14,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateUserRequestDto {
-    int originCountryId;
-    int destinationCountryId;
-    int productTypeId;
+    Integer originCountryId;
+    Integer destinationCountryId;
+    Integer productTypeId;
     List<RoleResponseResponseDto> roles;
     boolean emailNotificationEnabled;
     boolean phoneNotificationEnabled;

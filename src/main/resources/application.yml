@@ -12,7 +12,7 @@ spring:
       max-lifetime: 1800000     # 30 min
       keepalive-time: 0
   jpa:
-    show-sql: true
+    show-sql: false
     hibernate:
       ddl-auto: none   # you already created tables
     properties:
@@ -32,4 +32,27 @@ security:
 
 app:
   frontendBaseUrl: ${frontendBaseUrl}
+
+logging:
+  level:
+    # Default log level for everything
+    root: INFO
+    # Your application packages (DEBUG for dev)
+    com.amaravathi: INFO
+    # Spring Web (controllers, filters)
+    org.springframework.web: INFO
+    # Spring Security (change to DEBUG only when needed)
+    org.springframework.security: INFO
+    # Hibernate / JPA
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql: INFO
+  # Log file configuration
+  file:
+    name: logs/trade-identity-service-application.log
+  # Log patterns
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] cid=%X{cid} %logger{40} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] cid=%X{cid} %logger{40} - %msg%n"
+
+
 
